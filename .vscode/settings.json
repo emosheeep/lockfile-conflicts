@@ -1,6 +1,7 @@
 {
   "eslint.trace.server": "verbose",
   "editor.formatOnSave": true,
+  "editor.rulers": [80],
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"

@@ -1,46 +1,61 @@
 #!/usr/bin/env node
 import 'zx/globals';
-import { createCommand } from 'commander';
 import updateNotifier from 'update-notifier';
-import nodeCleanup from 'node-cleanup';
+import { createCommand } from 'commander';
 import { description, version, name } from '../package.json';
+import { getConfigDir, logger } from './utils';
 
-const ensureWorkingDirectoryClean = () =>
-  import('@/utils/git').then((v) => v.ensureWorkingDirectoryClean());
+path = path.posix; // platform compatibility
 
-const startAt = Date.now();
-nodeCleanup((exitCode) =>
-  console.log(
-    exitCode
-      ? `${chalk.red.bold('error')} Command failed with exit code ${exitCode}.`
-      : `✨ Done in ${((Date.now() - startAt) / 1000).toFixed(2)}s.`,
-  ),
-);
+const ensureConfigExit = () => {
+  if (!fs.existsSync(getConfigDir())) {
+    logger.print('No configurations were found.');
+    process.exit(0);
+  }
+};
 
-// Command setup
-const program = createCommand('your-command-name');
+const program = createCommand('lockfile');
 
 program
   .version(version)
   .description(description)
   .showHelpAfterError('(add --help for additional information)')
-  .hook('preAction', () =>
-    updateNotifier({ pkg: { name, version } }).notify({
-      isGlobal: true,
-    }),
+  .hook('preAction', () => updateNotifier({ pkg: { name, version } }).notify());
+
+program
+  .command('install [path]')
+  .description('Initialize configurations.')
+  .action((arg) => import('./install').then((v) => v.default(arg)));
+
+program
+  .command('merge')
+  .argument('base', 'base version')
+  .argument('ours', 'ours version')
+  .argument('theirs', 'theirs version')
+  .argument('filename', 'conflicting filename')
+  .description('Drop local changes on matched file and use theirs version.')
+  .hook('preAction', ensureConfigExit)
+  .action((...args) =>
+    // @ts-ignore
+    import('./merge').then((v) => v.default(...args)),
   );
 
-/**
- * Command register
- * @see https://github.com/tj/commander.js
- */
 program
-  .command('test')
-  .description('Test command.')
-  .option('--verbose', 'To be verbose.')
-  // Maybe you want to check something, try to use hooks.
-  .hook('preAction', () => ensureWorkingDirectoryClean())
-  // Use dynamic import to speed up the startup process.
-  .action((options) =>
-    import('./commands/test').then((v) => v.default(options)),
-  );
+  .command('rebase')
+  .description('Drop local changes on matched file and use theirs version.')
+  .hook('preAction', ensureConfigExit)
+  .action(() => import('./rebase').then((v) => v.default()));
+
+program
+  .command('cleanup')
+  .description('Clean log files and run configured commands if needed.')
+  .hook('preAction', ensureConfigExit)
+  .action(() => import('./cleanup').then((v) => v.default()));
+
+program
+  .command('uninstall')
+  .description('Remove githooks and relevant local git configs.')
+  .hook('preAction', ensureConfigExit)
+  .action(() => import('./uninstall').then((v) => v.default()));
+
+program.parse();

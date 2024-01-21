@@ -1,32 +1,61 @@
-export interface ExecOptions {
-  cwd?: string;
-  verbose?: boolean;
-}
+import { execSync } from 'child_process';
+import debug from 'debug';
 
-export async function isWorkingDirectoryClean(options: ExecOptions = {}) {
-  return within(async () => {
-    $.verbose = false;
-    Object.assign($, options);
-    const { stdout } = await $`git status -s`;
-    return !stdout;
-  });
-}
+const printGitCommand = debug('git');
 
-export async function ensureWorkingDirectoryClean() {
-  if (!(await isWorkingDirectoryClean({ verbose: true }))) {
-    await question(
-      '\n' +
-        chalk.cyan('→') +
-        ' Working directory is not clean, press enter to continue ↩︎. ',
+export class GitConfig {
+  #key: string;
+  #defaultValue: string;
+
+  constructor(key: string, defaultValue?: string) {
+    this.#key = key;
+    this.#defaultValue = defaultValue ?? '';
+  }
+
+  execute(cmd: string) {
+    try {
+      // Access a non-exist config will exitWith non-zero.
+      return execGitCommand(cmd);
+    } catch (e) {
+      return '';
+    }
+  }
+
+  get() {
+    return (
+      this.execute(`git config --local ${this.#key}`) || this.#defaultValue
     );
+  }
+
+  set(value: string) {
+    execGitCommand(`git config --local ${this.#key} "${value}"`);
+  }
+
+  unset() {
+    this.execute(`git config --local --unset ${this.#key}`);
   }
 }
 
-export async function getRepoRoot(options?: ExecOptions) {
-  return within(async () => {
-    $.verbose = false;
-    Object.assign($, options);
-    const { stdout } = await $`git rev-parse --show-toplevel`;
-    return stdout.trim();
-  });
-}
+export const execGitCommand = (command: string) => {
+  printGitCommand(command);
+  return execSync(command, { encoding: 'utf8' }).trim();
+};
+
+export const getRepoRoot = () =>
+  execGitCommand('git rev-parse --show-toplevel');
+
+export const getGirAttributes = () =>
+  path.resolve(getRepoRoot(), '.gitattributes');
+
+export const getGitDirectory = () => execGitCommand('git rev-parse --git-dir');
+
+export const isWorkingDirClean = () => !execGitCommand('git status -s');
+
+export const getHooksPath = () =>
+  path.resolve(
+    getRepoRoot(),
+    execGitCommand('git config --local core.hooksPath') || '.git/hooks',
+  );
+
+export const getCurrentBranch = () =>
+  execGitCommand('git branch --show-current');

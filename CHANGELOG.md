@@ -1,2 +1,2 @@
-# cli-template
+# lockfile-conflicts
 

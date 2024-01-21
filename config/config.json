@@ -1,0 +1,5 @@
+{
+  "commitMessage": "chore: update lockfile",
+  "lockfilePattern": "*pnpm-file.yaml",
+  "runAfter": "pnpm install --ignore-scripts --lockfile-only"
+}

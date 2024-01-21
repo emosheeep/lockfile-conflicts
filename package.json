@@ -1,15 +1,16 @@
 {
-  "name": "cli-template",
+  "name": "lockfile-conflicts",
   "version": "1.0.0",
   "type": "module",
-  "description": "Modern Node.js Command Line Tool Project Template.",
-  "author": "秦旭洋 <qinxuyang@bytedance.com>",
-  "license": "ISC",
+  "description": "Auto handle lockfile conflicts in merge/rebase process.",
+  "author": "秦旭洋 <emosheep@qq.com>",
+  "license": "MIT",
   "bin": {
-    "command-name": "./dist/index.js"
+    "lockfile": "./dist/index.js"
   },
   "files": [
     "dist",
+    "config",
     "CHANGELOG.md"
   ],
   "scripts": {
@@ -23,6 +24,8 @@
   },
   "dependencies": {
     "commander": "^11.1.0",
+    "debug": "^4.3.4",
+    "matcher": "^5.0.0",
     "node-cleanup": "^2.1.2",
     "typescript": "^5.3.3",
     "update-notifier": "^7.0.0",
