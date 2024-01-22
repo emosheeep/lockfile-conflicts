@@ -39,27 +39,47 @@ export function injectShellScript(filePath: string, scripts: string[]) {
     fs.appendFileSync(filePath, `\n${scriptContent}`);
 }
 
-export function replaceGitAttributes(pattern?: string) {
+export function removeGitAttributes() {
   const filePath = getGirAttributes();
   if (!fs.existsSync(filePath)) return;
-  const { lockfilePattern } = getConfigJson();
+  const pair = `merge=${name}`;
+
   const lines = fs.readFileSync(filePath, 'utf8').split('\n');
-  const start = lines.findIndex((s) => s.startsWith(lockfilePattern));
-  if (start !== -1) {
-    lines.splice(start, 1, pattern!);
-    fs.writeFileSync(filePath, lines.join('\n'));
-    return true;
+  let wasHit = false;
+  for (let i = 0; i < lines.length; i++) {
+    let item = lines[i];
+    if (!item.includes(pair)) continue;
+    item = item.replace(pair, '').trim();
+    // remove line if no paris contains (check space)
+    lines[i] = item.includes(' ') ? item : '';
+    wasHit = true;
   }
+
+  wasHit && fs.writeFile(filePath, lines.join('\n'));
 }
 
 export function injectGitAttributes() {
   const { lockfilePattern } = getConfigJson();
   const filePath = getGirAttributes();
-  const pattern = `${lockfilePattern} merge=${name}`;
+  const pair = `merge=${name}`;
+  const pattern = `${lockfilePattern} ${pair}`;
 
   if (!fs.existsSync(filePath)) {
     return fs.writeFileSync(filePath, pattern);
   }
 
-  replaceGitAttributes(pattern) || fs.appendFileSync(filePath, pattern);
+  const lines = fs.readFileSync(filePath, 'utf8').split('\n');
+  let wasHit = false;
+  for (let i = 0; i < lines.length; i++) {
+    const item = lines[i];
+    if (!item.startsWith(lockfilePattern)) continue;
+    wasHit = true;
+    if (!item.includes(pair)) {
+      lines[i] = item + ` ${pair}`; // append rule
+    }
+  }
+
+  wasHit
+    ? fs.writeFileSync(filePath, lines.join('\n'))
+    : fs.appendFileSync(filePath, `\n${pattern}`);
 }

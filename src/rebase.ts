@@ -41,6 +41,4 @@ export default async () => {
     const stdout = execGitCommand(`git diff --name-only HEAD`);
     execGitCommand(`git rebase ${stdout ? '--continue' : '--skip'}`);
   }
-
-  // await import('./cleanup').then((v) => v.default());
 };

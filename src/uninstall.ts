@@ -3,7 +3,7 @@ import {
   mergeDriver,
   forEachHooks,
   replaceShellScript,
-  replaceGitAttributes,
+  removeGitAttributes,
   logger,
   name,
 } from '@/utils';
@@ -18,7 +18,7 @@ export default async () => {
 
   // remove merge strategy
   mergeDriver.unset();
-  replaceGitAttributes('');
+  removeGitAttributes();
 
   // remove config directory
   const configDirPath = configDir.get();
