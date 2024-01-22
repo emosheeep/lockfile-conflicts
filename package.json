@@ -2,7 +2,7 @@
   "name": "lockfile-conflicts",
   "version": "0.1.0",
   "type": "module",
-  "description": "Auto handle lockfile conflicts in merge/rebase process.",
+  "description": "A custom merge driver, aims to handle lockfile conflicts automatically in merge/rebase process.",
   "author": "秦旭洋 <emosheep@qq.com>",
   "license": "MIT",
   "bin": {
@@ -62,6 +62,7 @@
     "cli",
     "driver",
     "conflicts",
+    "automerge",
     "monorepo",
     "cooperation",
     "workflow",
