@@ -15,13 +15,21 @@ import {
 
 const print = debug('install');
 
-export default async (dir: string = '') => {
+/** target dir should exist and not empty */
+function isPathAvailable(target: string) {
+  return fs.existsSync(target) && !!fs.readdirSync(target).length;
+}
+function isSameDirectory(source: string, target: string) {
+  return fs.realpathSync(source) === fs.realpathSync(target);
+}
+
+export default async (dir: string = '', force = false) => {
   $.verbose = false;
 
   try {
     // save config folder path
     const repoRoot = await getRepoRoot();
-    const installedDir = configDir.get();
+    const installedDir = path.resolve(repoRoot, configDir.get());
     const resolvedPath = dir
       ? path.resolve(process.cwd(), dir)
       : path.resolve(repoRoot, defaultConfigDir);
@@ -34,11 +42,12 @@ export default async (dir: string = '') => {
     print(`relative path - ${relativePath}`);
     print(`config path - ${configURL}`);
 
-    configDir.set(relativePath);
-
     // Write files
-    if (!fs.existsSync(resolvedPath)) {
-      if (fs.existsSync(installedDir)) {
+    if (!isPathAvailable(resolvedPath) || force) {
+      if (
+        isPathAvailable(installedDir) &&
+        !isSameDirectory(resolvedPath, installedDir)
+      ) {
         fs.moveSync(installedDir, resolvedPath, { overwrite: true });
         logger.info(
           `Configurations has been moved to ${chalk.underline(relativePath)}.`,
@@ -47,6 +56,9 @@ export default async (dir: string = '') => {
         fs.cpSync(configURL, resolvedPath, { recursive: true });
       }
     }
+
+    // git config should be applied after config dir has been set to avoid side effects
+    configDir.set(relativePath);
 
     // add git hooks
     forEachHooks((filename, scripts) => {
@@ -58,9 +70,10 @@ export default async (dir: string = '') => {
     mergeDriver.set(customDriver);
     injectGitAttributes();
 
-    logger.success(`${name} installed.`);
+    logger.success(`${name}${force ? ' force' : ''} installed.`);
   } catch (e: any) {
     console.log(e.stderr || e.message);
-    return logger.error('Failed to initialize.');
+    e.stack && print(e.stack);
+    logger.error('Failed to initialize.');
   }
 };

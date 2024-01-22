@@ -25,7 +25,10 @@ program
 program
   .command('install [path]')
   .description('Initialize configurations.')
-  .action((arg) => import('./install').then((v) => v.default(arg)));
+  .option('-f,--force', 'Overwrite configurations if exist')
+  .action((dir, options) =>
+    import('./install').then((v) => v.default(dir, options.force)),
+  );
 
 program
   .command('merge')
@@ -55,7 +58,10 @@ program
 program
   .command('uninstall')
   .description('Remove githooks and relevant local git configs.')
-  .hook('preAction', ensureConfigExit)
+  .option('-f,--force', 'Force run uninstall process.')
+  .hook('preAction', (cmd) => {
+    !cmd.opts().force && ensureConfigExit();
+  })
   .action(() => import('./uninstall').then((v) => v.default()));
 
 program.parse();
