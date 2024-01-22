@@ -1,6 +1,6 @@
 {
   "name": "lockfile-conflicts",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "type": "module",
   "description": "Auto handle lockfile conflicts in merge/rebase process.",
   "author": "秦旭洋 <emosheep@qq.com>",
@@ -50,5 +50,21 @@
     "lint-staged": "^15.2.0",
     "prettier": "^3.2.4",
     "tsup": "^8.0.1"
-  }
+  },
+  "keywords": [
+    "git",
+    "rebase",
+    "merge",
+    "lockfile",
+    "pnpm",
+    "npm",
+    "yarn",
+    "cli",
+    "driver",
+    "conflicts",
+    "monorepo",
+    "cooperation",
+    "workflow",
+    "infra"
+  ]
 }

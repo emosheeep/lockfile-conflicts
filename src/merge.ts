@@ -1,16 +1,14 @@
-import { appendLogFile, printHints } from './utils';
+import { appendConflictFile, execGitCommand, printHints } from './utils';
 
-export default async (
+export default (
   base: string,
   ours: string,
   theirs: string,
   filename: string,
 ) => {
-  $.verbose = false;
-
   // Accept theirs version
-  await $`git merge-file --theirs ${base} ${ours} ${theirs}`;
+  execGitCommand(`git merge-file --theirs ${base} ${ours} ${theirs}`);
+  // preserve log file
+  appendConflictFile(filename);
   printHints(filename);
-
-  appendLogFile(filename); // preserve log file
 };

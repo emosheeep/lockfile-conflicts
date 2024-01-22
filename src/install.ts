@@ -55,16 +55,15 @@ export default async (dir: string = '', force = false) => {
       } else {
         fs.cpSync(configURL, resolvedPath, { recursive: true });
       }
+    } else {
+      logger.info(`${relativePath} exist`);
     }
 
     // git config should be applied after config dir has been set to avoid side effects
     configDir.set(relativePath);
 
     // add git hooks
-    forEachHooks((filename, scripts) => {
-      injectShellScript(filename, scripts);
-      fs.chmodSync(filename, '755'); // make file executable.
-    });
+    forEachHooks((filename, scripts) => injectShellScript(filename, scripts));
 
     // add custom merge strategy
     mergeDriver.set(customDriver);

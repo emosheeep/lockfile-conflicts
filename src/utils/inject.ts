@@ -1,19 +1,22 @@
 import { getConfigJson } from './config';
 import { name, banner, hooks } from './constants';
 import { getGirAttributes, getHooksPath } from './git';
+import { splitFile } from './helper';
 
 export function forEachHooks(
   callback: (filename: string, scripts: string[]) => void,
 ) {
   const hookDir = getHooksPath();
   for (const [hookName, scripts] of Object.entries(hooks)) {
-    callback(path.resolve(hookDir, hookName), scripts);
+    const hookPath = path.resolve(hookDir, hookName);
+    callback(hookPath, scripts);
+    fs.chmodSync(hookPath, '755'); // make file executable.
   }
 }
 
 export function replaceShellScript(filePath: string, content?: string) {
   if (!fs.existsSync(filePath)) return;
-  const lines = fs.readFileSync(filePath, 'utf-8').split('\n');
+  const lines = splitFile(filePath);
   const start = lines.findIndex((s) => s.startsWith(banner[0]));
   const end = lines.findLastIndex((s) => s.startsWith(banner[1]));
   if ([start, end].every((v) => v !== -1)) {
@@ -44,7 +47,7 @@ export function removeGitAttributes() {
   if (!fs.existsSync(filePath)) return;
   const pair = `merge=${name}`;
 
-  const lines = fs.readFileSync(filePath, 'utf8').split('\n');
+  const lines = splitFile(filePath);
   let wasHit = false;
   for (let i = 0; i < lines.length; i++) {
     let item = lines[i];
@@ -68,7 +71,7 @@ export function injectGitAttributes() {
     return fs.writeFileSync(filePath, pattern);
   }
 
-  const lines = fs.readFileSync(filePath, 'utf8').split('\n');
+  const lines = splitFile(filePath);
   let wasHit = false;
   for (let i = 0; i < lines.length; i++) {
     const item = lines[i];

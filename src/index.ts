@@ -3,12 +3,14 @@ import 'zx/globals';
 import updateNotifier from 'update-notifier';
 import { createCommand } from 'commander';
 import { description, version, name } from '../package.json';
-import { getConfigDir, logger } from './utils';
+import { getConfigJson, logger } from './utils';
 
 path = path.posix; // platform compatibility
 
 const ensureConfigExit = () => {
-  if (!fs.existsSync(getConfigDir())) {
+  try {
+    getConfigJson();
+  } catch (e) {
     logger.print('No configurations were found.');
     process.exit(0);
   }
@@ -32,11 +34,11 @@ program
 
 program
   .command('merge')
-  .argument('base', 'base version')
-  .argument('ours', 'ours version')
-  .argument('theirs', 'theirs version')
-  .argument('filename', 'conflicting filename')
-  .description('Drop local changes on matched file and use theirs version.')
+  .argument('base', 'Base version %O')
+  .argument('ours', 'Ours version %A')
+  .argument('theirs', 'Theirs version %B')
+  .argument('filename', 'Conflicting filename %P')
+  .description('A custom merge driver used to merge file.')
   .hook('preAction', ensureConfigExit)
   .action((...args) =>
     // @ts-ignore
@@ -44,16 +46,19 @@ program
   );
 
 program
-  .command('rebase')
+  .command('resolve')
   .description('Drop local changes on matched file and use theirs version.')
   .hook('preAction', ensureConfigExit)
-  .action(() => import('./rebase').then((v) => v.default()));
+  .action(() => import('./resolve').then((v) => v.default()));
 
 program
   .command('cleanup')
-  .description('Clean log files and run configured commands if needed.')
+  .description('Clean log files and execute `runAfter` script if needed.')
+  .option('--only', 'Remove temp files only.')
   .hook('preAction', ensureConfigExit)
-  .action(() => import('./cleanup').then((v) => v.default()));
+  .action((options) =>
+    import('./cleanup').then((v) => v.default(options.only)),
+  );
 
 program
   .command('uninstall')

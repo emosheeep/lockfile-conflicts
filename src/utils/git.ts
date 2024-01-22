@@ -36,13 +36,13 @@ export class GitConfig {
   }
 }
 
+export const getRepoRoot = () =>
+  execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim();
+
 export const execGitCommand = (command: string) => {
   printGitCommand(command);
-  return execSync(command, { encoding: 'utf8' }).trim();
+  return execSync(command, { encoding: 'utf8', cwd: getRepoRoot() }).trim();
 };
-
-export const getRepoRoot = () =>
-  execGitCommand('git rev-parse --show-toplevel');
 
 export const getGirAttributes = () =>
   path.resolve(getRepoRoot(), '.gitattributes');
