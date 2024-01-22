@@ -1,5 +1,6 @@
-import { execSync } from 'child_process';
 import debug from 'debug';
+import { execSync } from 'child_process';
+import { name, gitConfigKey } from './constants';
 
 const printGitCommand = debug('git');
 
@@ -7,12 +8,7 @@ export class GitConfig {
   #key: string;
   #defaultValue: string;
 
-  constructor(key: string, defaultValue?: string) {
-    this.#key = key;
-    this.#defaultValue = defaultValue ?? '';
-  }
-
-  execute(cmd: string) {
+  static execute(cmd: string) {
     try {
       // Access a non-exist config will exitWith non-zero.
       return execGitCommand(cmd);
@@ -21,18 +17,40 @@ export class GitConfig {
     }
   }
 
+  static reset(key: string) {
+    GitConfig.execute(`git config --local --unset ${key}`);
+  }
+
+  static resetAll() {
+    try {
+      // remove known config
+      Object.values(gitConfigKey).forEach((key) => GitConfig.reset(key));
+      // remove possible legacy config
+      const stdout = GitConfig.execute(`git config --get-regexp "^${name}"`);
+      for (const item of stdout.split('\n').filter(Boolean)) {
+        const [configName] = item.split(' ');
+        GitConfig.reset(configName);
+      }
+    } catch (e) {}
+  }
+
+  constructor(key: string, defaultValue?: string) {
+    this.#key = key;
+    this.#defaultValue = defaultValue ?? '';
+  }
+
   get() {
     return (
-      this.execute(`git config --local ${this.#key}`) || this.#defaultValue
+      GitConfig.execute(`git config --local ${this.#key}`) || this.#defaultValue
     );
   }
 
   set(value: string) {
-    execGitCommand(`git config --local ${this.#key} "${value}"`);
+    GitConfig.execute(`git config --local ${this.#key} "${value}"`);
   }
 
   unset() {
-    this.execute(`git config --local --unset ${this.#key}`);
+    GitConfig.reset(this.#key);
   }
 }
 

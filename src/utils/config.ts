@@ -1,9 +1,9 @@
 import { GitConfig, getRepoRoot } from './git';
 import {
-  name,
   defaultConfigDir,
   conflictFileName,
   configFileName,
+  gitConfigKey,
 } from './constants';
 
 export interface ConfigJson {
@@ -12,8 +12,11 @@ export interface ConfigJson {
   lockfilePattern: string;
 }
 
-export const configDir = new GitConfig(`${name}.configDir`, defaultConfigDir);
-export const mergeDriver = new GitConfig(`merge.${name}.driver`);
+export const mergeDriver = new GitConfig(gitConfigKey.mergeDriver);
+export const configDir = new GitConfig(
+  gitConfigKey.configDir,
+  defaultConfigDir,
+);
 
 export function appendConflictFile(filename: string) {
   const filePath = path.resolve(getConfigDir(), conflictFileName);

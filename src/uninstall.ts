@@ -1,11 +1,11 @@
 import {
   configDir,
-  mergeDriver,
   forEachHooks,
   replaceShellScript,
   removeGitAttributes,
   logger,
   name,
+  GitConfig,
 } from '@/utils';
 
 export default async () => {
@@ -17,13 +17,14 @@ export default async () => {
   });
 
   // remove merge strategy
-  mergeDriver.unset();
   removeGitAttributes();
 
   // remove config directory
   const configDirPath = configDir.get();
-  configDir.unset();
   fs.rmSync(configDirPath, { recursive: true, force: true });
+
+  // reset git config
+  GitConfig.resetAll();
 
   logger.success(`${name} has been removed.`);
 };

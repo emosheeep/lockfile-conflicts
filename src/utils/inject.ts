@@ -1,7 +1,7 @@
 import { getConfigJson } from './config';
-import { name, banner, hooks } from './constants';
+import { name, banner, hooks, shellBaseDir } from './constants';
 import { getGirAttributes, getHooksPath } from './git';
-import { splitFile } from './helper';
+import { joinNestedArray, splitFile } from './helper';
 
 export function forEachHooks(
   callback: (filename: string, scripts: string[]) => void,
@@ -28,7 +28,19 @@ export function replaceShellScript(filePath: string, content?: string) {
 }
 
 export function injectShellScript(filePath: string, scripts: string[]) {
-  const scriptContent = `${banner[0]}\n${scripts.join('\n')}\n${banner[1]}`;
+  const scriptContent = joinNestedArray([
+    banner[0],
+    "# Don't modify these lines between start and end.",
+    '(',
+    [
+      '# Open a sub-shell to avoid side effects on $PWD',
+      `# This helps npx find executable bin file - node_modules/.bin/lockfile.`,
+      `${shellBaseDir}`,
+      ...scripts,
+    ],
+    ')',
+    banner[1],
+  ]);
 
   // create if doesn't exist
   if (!fs.existsSync(filePath)) {
