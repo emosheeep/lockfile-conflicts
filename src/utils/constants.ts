@@ -25,6 +25,7 @@ export const customDriver = `${shellBaseDir} && npx lockfile merge %O %A %B %P`;
 
 export const hooks = {
   'pre-rebase': ['npx lockfile cleanup --only'],
+  'post-checkout': ['npx lockfile cleanup --only'],
   'post-commit': ['npx lockfile cleanup'],
   'post-rewrite': [
     `if [ "$1" = "rebase" ]; then`,

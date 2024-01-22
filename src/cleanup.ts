@@ -6,6 +6,7 @@ import {
   execGitCommand,
   getConfigDir,
   getConfigJson,
+  getGitDirectory,
   isWorkingDirClean,
   logger,
   shouldSkipExec,
@@ -13,19 +14,30 @@ import {
   splitFile,
 } from '@/utils';
 
+const isMerging = () =>
+  fs.existsSync(path.resolve(getGitDirectory(), 'MERGE_HEAD'));
+
+const isRebasing = () => {
+  const gitdir = getGitDirectory();
+  return ['rebase-apply', 'rebase-merge'].some((v) =>
+    fs.existsSync(path.resolve(gitdir, v)),
+  );
+};
+
 export default async (
   /** Remove temp flies only */
   only = false,
 ) => {
+  if (shouldSkipExec()) return; // avoid loop
+  if (isMerging() || isRebasing()) return; // avoid unexpected modifications
+
   const configDirPath = getConfigDir();
   const logFile = path.resolve(configDirPath, conflictFileName);
   const isLogFileExist = fs.existsSync(logFile);
   const conflictFiles = new Set(isLogFileExist ? splitFile(logFile) : []);
   execGitCommand(`git clean -Xf ${configDirPath}`); // cleanup ignored files.
 
-  if (/* Attention loop */ shouldSkipExec() || only || !conflictFiles.size) {
-    return;
-  }
+  if (only || !conflictFiles.size) return;
 
   logger.info(`Note there're conflicts on lockfile before:`);
   conflictFiles.forEach((v) => logger.print(`→ ${v}`));
