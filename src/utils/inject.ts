@@ -3,14 +3,23 @@ import { name, banner, hooks, shellBaseDir } from './constants';
 import { getGirAttributes, getHooksPath } from './git';
 import { joinNestedArray, splitFile } from './helper';
 
-export function forEachHooks(
-  callback: (filename: string, scripts: string[]) => void,
-) {
+export function installHooks() {
+  uninstallHooks();
   const hookDir = getHooksPath();
   for (const [hookName, scripts] of Object.entries(hooks)) {
     const hookPath = path.resolve(hookDir, hookName);
-    callback(hookPath, scripts);
+    injectShellScript(hookPath, scripts); // Add shell script into git hook
     fs.chmodSync(hookPath, '755'); // make file executable.
+  }
+}
+
+export function uninstallHooks() {
+  const hookDir = getHooksPath();
+  // Remove possible script from the other hooks that are not configured.
+  for (const hookName of fs.readdirSync(hookDir)) {
+    const hookPath = path.resolve(hookDir, hookName);
+    if (fs.statSync(hookPath).isDirectory()) continue;
+    replaceShellScript(hookPath, '');
   }
 }
 
@@ -22,7 +31,6 @@ export function replaceShellScript(filePath: string, content?: string) {
   if ([start, end].every((v) => v !== -1)) {
     lines.splice(start, end - start + 1, content!);
     fs.writeFileSync(filePath, lines.join('\n'));
-
     return true;
   }
 }
@@ -51,7 +59,7 @@ export function injectShellScript(filePath: string, scripts: string[]) {
   // replace the old scripts with new scripts.
   replaceShellScript(filePath, scriptContent) ||
     // append scripts
-    fs.appendFileSync(filePath, `\n${scriptContent}`);
+    appendFile(filePath, scriptContent);
 }
 
 export function removeGitAttributes() {
@@ -96,5 +104,18 @@ export function injectGitAttributes() {
 
   wasHit
     ? fs.writeFileSync(filePath, lines.join('\n'))
-    : fs.appendFileSync(filePath, `\n${pattern}`);
+    : appendFile(filePath, pattern);
+}
+
+/** Append content to the end of file and add a newline if needed */
+function appendFile(filePath: string, content: string) {
+  fs.ensureFileSync(filePath);
+  const fileContent = fs.readFileSync(filePath, 'utf8');
+  fs.writeFileSync(
+    filePath,
+    fileContent +
+      (!fileContent.length || fileContent.endsWith('\n')
+        ? content
+        : `\n${content}`),
+  );
 }

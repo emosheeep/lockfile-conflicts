@@ -9,8 +9,7 @@ import {
   customDriver,
   defaultConfigDir,
   name,
-  injectShellScript,
-  forEachHooks,
+  installHooks,
 } from '@/utils';
 
 const print = debug('install');
@@ -63,7 +62,7 @@ export default async (dir: string = '', force = false) => {
     configDir.set(relativePath);
 
     // add git hooks
-    forEachHooks((filename, scripts) => injectShellScript(filename, scripts));
+    installHooks();
 
     // add custom merge strategy
     mergeDriver.set(customDriver);

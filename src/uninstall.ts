@@ -1,7 +1,6 @@
 import {
   configDir,
-  forEachHooks,
-  replaceShellScript,
+  uninstallHooks,
   removeGitAttributes,
   logger,
   name,
@@ -10,11 +9,7 @@ import {
 
 export default async () => {
   // remove git hooks
-  forEachHooks((filename) => {
-    if (fs.existsSync(filename)) {
-      replaceShellScript(filename, '');
-    }
-  });
+  uninstallHooks();
 
   // remove merge strategy
   removeGitAttributes();

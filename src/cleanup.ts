@@ -2,9 +2,9 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { commitMessage as defaultCommitMessage } from '../config/config.json';
 import {
-  configDir,
   conflictFileName,
   execGitCommand,
+  getConfigDir,
   getConfigJson,
   isWorkingDirClean,
   logger,
@@ -17,7 +17,7 @@ export default async (
   /** Remove temp flies only */
   only = false,
 ) => {
-  const configDirPath = configDir.get();
+  const configDirPath = getConfigDir();
   const logFile = path.resolve(configDirPath, conflictFileName);
   const isLogFileExist = fs.existsSync(logFile);
   const conflictFiles = new Set(isLogFileExist ? splitFile(logFile) : []);
