@@ -1,7 +1,18 @@
 import { matcher } from 'matcher';
-import { execGitCommand, getConfigJson, printHints } from '@/utils';
+import {
+  execGitCommand,
+  getConfigJson,
+  isMerging,
+  isRebasing,
+  logger,
+  printHints,
+} from '@/utils';
 
 export default () => {
+  if (!isMerging() || !isRebasing()) {
+    return logger.print('Not in a merge/rebase process?');
+  }
+
   const { lockfilePattern } = getConfigJson();
 
   const unmergedResult = execGitCommand(`git diff --name-only --diff-filter=U`);

@@ -6,30 +6,25 @@ import {
   execGitCommand,
   getConfigDir,
   getConfigJson,
-  getGitDirectory,
-  isWorkingDirClean,
+  isMerging,
+  isRebasing,
   logger,
   shouldSkipExec,
-  skipEnvName,
   splitFile,
 } from '@/utils';
-
-const isMerging = () =>
-  fs.existsSync(path.resolve(getGitDirectory(), 'MERGE_HEAD'));
-
-const isRebasing = () => {
-  const gitdir = getGitDirectory();
-  return ['rebase-apply', 'rebase-merge'].some((v) =>
-    fs.existsSync(path.resolve(gitdir, v)),
-  );
-};
 
 export default async (
   /** Remove temp flies only */
   only = false,
 ) => {
   if (shouldSkipExec()) return; // avoid loop
-  if (isMerging() || isRebasing()) return; // avoid unexpected modifications
+  /**
+   * checkout in rebase/merge will trigger post-checkout,
+   * which may cause temp files to be removed.
+   * as a result, the `runAfter` script won't be executed after
+   * the rebase is completed.
+   */
+  if (isMerging() || isRebasing()) return;
 
   const configDirPath = getConfigDir();
   const logFile = path.resolve(configDirPath, conflictFileName);
@@ -40,14 +35,19 @@ export default async (
   if (only || !conflictFiles.size) return;
 
   logger.info(`Note there're conflicts on lockfile before:`);
-  conflictFiles.forEach((v) => logger.print(`→ ${v}`));
+  conflictFiles.forEach((v) => logger.info(`→ ${v}`));
 
   const { runAfter, commitMessage = defaultCommitMessage } = getConfigJson();
 
   if (runAfter) {
     logger.info(
-      `And you've configured ${chalk.underline('runAfter')} script, ` +
-        'please wait to update.',
+      `And you've configured ${chalk.underline('runAfter')} script, please wait to update.`,
+    );
+    logger.info(
+      chalk.bold(
+        "This action won't affect commit result, if it runs unexpectedly, just exit with",
+        chalk.underline('Ctrl + C'),
+      ),
     );
 
     const [cmd, ...params] = runAfter.trim().split(' ');
@@ -59,22 +59,25 @@ export default async (
       console.log(e.stderr || e.stdout);
       return logger.error(
         chalk.bold(
-          `Failed to run ${chalk.underline(e.cmd)} for reasons, ` +
+          `Failed to run ${chalk.underline(e.cmd)} for some reasons, ` +
             'please make sure the lockfile is up-to-date.',
         ),
       );
     }
 
-    // avoid git hook loop
-    $.env = { ...process.env, [skipEnvName]: 'true' };
-
-    if (!isWorkingDirClean()) {
-      for (const filename of conflictFiles) {
+    let wasHit = false;
+    for (const filename of conflictFiles) {
+      if (execGitCommand(`git status -s ${filename}`)) {
         await $`git add ${filename}`;
+        wasHit = true;
       }
+    }
+    if (wasHit) {
       await $`git commit -m ${commitMessage} --no-verify`;
+      await $`git --no-pager log -1`.stdio('inherit', 'inherit');
+      logger.info('Changes committed.');
     } else {
-      logger.info('Working directory is clean, nothing to commit.');
+      logger.info('Nothing to commit.');
     }
   } else {
     logger.warn(

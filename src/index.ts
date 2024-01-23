@@ -3,9 +3,13 @@ import 'zx/globals';
 import updateNotifier from 'update-notifier';
 import { createCommand } from 'commander';
 import { description, version, name } from '../package.json';
-import { getConfigJson, logger } from './utils';
+import { getConfigJson, getRepoRoot, logger, skipEnvName } from './utils';
 
-path = path.posix; // platform compatibility
+// initialize zx
+$.cwd = getRepoRoot();
+$.env = { ...process.env, [skipEnvName]: 'true' };
+// platform compatibility
+path = path.posix;
 
 const ensureConfigExit = () => {
   try {

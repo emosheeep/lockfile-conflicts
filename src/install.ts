@@ -72,6 +72,6 @@ export default async (dir: string = '', force = false) => {
   } catch (e: any) {
     console.log(e.stderr || e.message);
     e.stack && print(e.stack);
-    logger.error('Failed to initialize.');
+    logger.error(`Failed to initialize, try ${chalk.blue('--force')} option.`);
   }
 };

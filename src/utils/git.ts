@@ -67,8 +67,6 @@ export const getGirAttributes = () =>
 
 export const getGitDirectory = () => execGitCommand('git rev-parse --git-dir');
 
-export const isWorkingDirClean = () => !execGitCommand('git status -s');
-
 export const getHooksPath = () =>
   path.resolve(
     getRepoRoot(),
@@ -77,3 +75,13 @@ export const getHooksPath = () =>
 
 export const getCurrentBranch = () =>
   execGitCommand('git branch --show-current');
+
+export const isMerging = () =>
+  fs.existsSync(path.resolve(getGitDirectory(), 'MERGE_HEAD'));
+
+export const isRebasing = () => {
+  const gitdir = getGitDirectory();
+  return ['rebase-apply', 'rebase-merge'].some((v) =>
+    fs.existsSync(path.resolve(gitdir, v)),
+  );
+};

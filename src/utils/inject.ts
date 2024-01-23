@@ -38,7 +38,8 @@ export function replaceShellScript(filePath: string, content?: string) {
 export function injectShellScript(filePath: string, scripts: string[]) {
   const scriptContent = joinNestedArray([
     banner[0],
-    "# Don't modify these lines between start and end.",
+    "# Don't modify these lines and keep them at the bottom of the file.",
+    '# Because every installation will try to remove and re-add them.',
     '(',
     [
       '# Open a sub-shell to avoid side effects on $PWD',
