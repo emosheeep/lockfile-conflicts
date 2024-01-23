@@ -36,17 +36,19 @@ export default async (
 
   logger.info(`Note there're conflicts on lockfile before:`);
   conflictFiles.forEach((v) => logger.info(`→ ${v}`));
+  logger.info(chalk.bold(`And we've accepted theirs version.`));
 
   const { runAfter, commitMessage = defaultCommitMessage } = getConfigJson();
 
   if (runAfter) {
     logger.info(
-      `And you've configured ${chalk.underline('runAfter')} script, please wait to update.`,
+      `Now we need to execute configured ${chalk.underline('runAfter')} script to update it, please wait.`,
     );
     logger.info(
       chalk.bold(
-        "This action won't affect commit result, if it runs unexpectedly, just exit with",
+        "This action won't affect commit result, just exit with",
         chalk.underline('Ctrl + C'),
+        'if it runs unexpectedly.',
       ),
     );
 
@@ -60,7 +62,7 @@ export default async (
       return logger.error(
         chalk.bold(
           `Failed to run ${chalk.underline(e.cmd)} for some reasons, ` +
-            'please make sure the lockfile is up-to-date.',
+            'please manually make sure the lockfile is up-to-date.',
         ),
       );
     }
@@ -80,9 +82,11 @@ export default async (
       logger.info('Nothing to commit.');
     }
   } else {
-    logger.warn(
-      `But no ${chalk.underline('runAfter')} script was configured, ` +
-        chalk.bold('please make sure the lockfile is up-to-date.'),
+    logger.info(
+      chalk.bold(
+        `But you've not configured ${chalk.underline('runAfter')} script, ` +
+          'please manually make sure the lockfile is up-to-date.',
+      ),
     );
   }
 };

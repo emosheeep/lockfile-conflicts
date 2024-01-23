@@ -10,7 +10,7 @@
   },
   "files": [
     "dist",
-    "config",
+    "config/*",
     "CHANGELOG.md"
   ],
   "scripts": {
