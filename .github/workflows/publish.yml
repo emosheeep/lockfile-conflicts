@@ -19,8 +19,19 @@ jobs:
           version: 8
           run_install: true
 
-      - name: Create Release Pull Request or Publish to npm
+      - name: Version Package
+        id: versioning
+        run: |
+          npx changeset version
+          echo "::set-output name=tag::v$(node -pe "require('./package.json').version")"
+          git restore .
+
+      - name: Create Release Pull Request and Publish to npm
         uses: changesets/action@v1
-        env: # Need your own Token
+        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        with:
+          commit: "chore: release ${{ steps.versioning.outputs.tag }}"
+          title: "chore: release ${{ steps.versioning.outputs.tag }}"
+          publish: pnpm publish
