@@ -1,7 +1,4 @@
-# This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
-# For more information see: https://docs.github.com/en/actions/publishing-packages/publishing-nodejs-packages
-
-name: Publish Package
+name: Release Package
 
 on:
   pull_request:
@@ -11,7 +8,7 @@ on:
       - master
 
 jobs:
-  publish-package:
+  release-package:
     # triggered when a branch starts with changeset-release/* has been merged into master
     if: github.event.pull_request.merged && startsWith(github.head_ref, 'changeset-release/')
     runs-on: ubuntu-latest
