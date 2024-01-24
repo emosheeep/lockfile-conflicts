@@ -1,5 +1,14 @@
 # lockfile-conflicts
 
+## 0.2.0
+
+### Minor Changes
+
+- 3448c0b: chore: refactor initialization process
+  - use bin instead of npx command
+  - remove git config first before set
+  - add config directory exist judge logic
+
 ## 0.1.1
 
 ### Patch Changes
