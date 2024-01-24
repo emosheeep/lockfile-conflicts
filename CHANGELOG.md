@@ -1,5 +1,12 @@
 # lockfile-conflicts
 
+## 0.2.1
+
+### Patch Changes
+
+- 0c2ec1e: feat: just hook stage in cleanup to avoid mis executing.
+  chore: use local installed package first.
+
 ## 0.2.0
 
 ### Minor Changes
