@@ -1,15 +1,15 @@
 import debug from 'debug';
 import {
-  configDir,
   getRepoRoot,
   logger,
-  mergeDriver,
   injectGitAttributes,
   configURL,
-  customDriver,
   defaultConfigDir,
   name,
   installHooks,
+  setGitConfig,
+  getConfigDir,
+  removeGitConfig,
 } from '@/utils';
 
 const print = debug('install');
@@ -19,7 +19,7 @@ function isPathAvailable(target: string) {
   return fs.existsSync(target) && !!fs.readdirSync(target).length;
 }
 function isSameDirectory(source: string, target: string) {
-  return fs.realpathSync(source) === fs.realpathSync(target);
+  return path.resolve(source) === path.resolve(target);
 }
 
 export default async (dir: string = '', force = false) => {
@@ -28,11 +28,9 @@ export default async (dir: string = '', force = false) => {
   try {
     // save config folder path
     const repoRoot = await getRepoRoot();
-    const installedDir = path.resolve(repoRoot, configDir.get());
-    const resolvedPath = dir
-      ? path.resolve(process.cwd(), dir)
-      : path.resolve(repoRoot, defaultConfigDir);
+    const installedDir = getConfigDir();
 
+    const resolvedPath = path.resolve(process.cwd(), dir || defaultConfigDir);
     const relativePath = path.relative(repoRoot, resolvedPath) || '.';
 
     print(`received path - ${dir}`);
@@ -44,6 +42,7 @@ export default async (dir: string = '', force = false) => {
     // Write files
     if (!isPathAvailable(resolvedPath) || force) {
       if (
+        installedDir &&
         isPathAvailable(installedDir) &&
         !isSameDirectory(resolvedPath, installedDir)
       ) {
@@ -59,13 +58,13 @@ export default async (dir: string = '', force = false) => {
     }
 
     // git config should be applied after config dir has been set to avoid side effects
-    configDir.set(relativePath);
+    removeGitConfig(); // remove first
+    setGitConfig({ configDir: relativePath });
 
     // add git hooks
     installHooks();
 
     // add custom merge strategy
-    mergeDriver.set(customDriver);
     injectGitAttributes();
 
     logger.success(`${name}${force ? ' force' : ''} installed.`);

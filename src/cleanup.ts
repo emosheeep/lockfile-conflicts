@@ -26,23 +26,28 @@ export default async (
    */
   if (isMerging() || isRebasing()) return;
 
-  const configDirPath = getConfigDir();
-  const logFile = path.resolve(configDirPath, conflictFileName);
+  const configDir = getConfigDir();
+  if (!configDir) return;
+
+  const logFile = path.resolve(configDir, conflictFileName);
   const isLogFileExist = fs.existsSync(logFile);
   const conflictFiles = new Set(isLogFileExist ? splitFile(logFile) : []);
-  execGitCommand(`git clean -Xf ${configDirPath}`); // cleanup ignored files.
+  execGitCommand(`git clean -Xf ${configDir}`); // cleanup ignored files.
 
   if (only || !conflictFiles.size) return;
 
   logger.info(`Note there're conflicts on lockfile before:`);
-  conflictFiles.forEach((v) => logger.info(`→ ${v}`));
+  conflictFiles.forEach((v) => logger.info(`${chalk.blue('→')} ${v}`));
   logger.info(chalk.bold(`And we've accepted theirs version.`));
 
   const { runAfter, commitMessage = defaultCommitMessage } = getConfigJson();
 
   if (runAfter) {
     logger.info(
-      `Now we need to execute configured ${chalk.underline('runAfter')} script to update it, please wait.`,
+      chalk.bold(
+        `Now we need to execute configured ${chalk.underline('runAfter')}`,
+        'script to update it, please wait.',
+      ),
     );
     logger.info(
       chalk.bold(

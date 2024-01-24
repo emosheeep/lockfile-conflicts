@@ -1,5 +1,5 @@
-import { getConfigJson } from './config';
-import { name, banner, hooks, shellBaseDir } from './constants';
+import { getRelBinDir, getConfigJson } from './config';
+import { name, banner, hooks } from './constants';
 import { getGirAttributes, getHooksPath } from './git';
 import { joinNestedArray, splitFile } from './helper';
 
@@ -36,17 +36,13 @@ export function replaceShellScript(filePath: string, content?: string) {
 }
 
 export function injectShellScript(filePath: string, scripts: string[]) {
+  const binDir = getRelBinDir();
   const scriptContent = joinNestedArray([
     banner[0],
     "# Don't modify these lines and keep them at the bottom of the file.",
-    '# Because every installation will try to remove and re-add them.',
+    '# Because they will be removed and re-added every time in installation.',
     '(',
-    [
-      '# Open a sub-shell to avoid side effects on $PWD',
-      `# This helps npx find executable bin file - node_modules/.bin/lockfile.`,
-      `${shellBaseDir}`,
-      ...scripts,
-    ],
+    [`export PATH=$PATH:${binDir}`, ...scripts],
     ')',
     banner[1],
   ]);

@@ -1,58 +1,8 @@
+/** This file shouldn't depend on the others to avoid cycles */
 import debug from 'debug';
 import { execSync } from 'child_process';
-import { name, gitConfigKey } from './constants';
 
 const printGitCommand = debug('git');
-
-export class GitConfig {
-  #key: string;
-  #defaultValue: string;
-
-  static execute(cmd: string) {
-    try {
-      // Access a non-exist config will exitWith non-zero.
-      return execGitCommand(cmd);
-    } catch (e) {
-      return '';
-    }
-  }
-
-  static reset(key: string) {
-    GitConfig.execute(`git config --local --unset ${key}`);
-  }
-
-  static resetAll() {
-    try {
-      // remove known config
-      Object.values(gitConfigKey).forEach((key) => GitConfig.reset(key));
-      // remove possible legacy config
-      const stdout = GitConfig.execute(`git config --get-regexp "^${name}"`);
-      for (const item of stdout.split('\n').filter(Boolean)) {
-        const [configName] = item.split(' ');
-        GitConfig.reset(configName);
-      }
-    } catch (e) {}
-  }
-
-  constructor(key: string, defaultValue?: string) {
-    this.#key = key;
-    this.#defaultValue = defaultValue ?? '';
-  }
-
-  get() {
-    return (
-      GitConfig.execute(`git config --local ${this.#key}`) || this.#defaultValue
-    );
-  }
-
-  set(value: string) {
-    GitConfig.execute(`git config --local ${this.#key} "${value}"`);
-  }
-
-  unset() {
-    GitConfig.reset(this.#key);
-  }
-}
 
 export const getRepoRoot = () =>
   execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim();

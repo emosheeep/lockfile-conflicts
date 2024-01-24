@@ -1,10 +1,10 @@
 import {
-  configDir,
   uninstallHooks,
   removeGitAttributes,
   logger,
   name,
-  GitConfig,
+  removeGitConfig,
+  getConfigDir,
 } from '@/utils';
 
 export default async () => {
@@ -14,12 +14,13 @@ export default async () => {
   // remove merge strategy
   removeGitAttributes();
 
-  // remove config directory
-  const configDirPath = configDir.get();
-  fs.rmSync(configDirPath, { recursive: true, force: true });
+  const configDir = getConfigDir();
 
   // reset git config
-  GitConfig.resetAll();
+  removeGitConfig();
+
+  // remove config directory
+  fs.rmSync(configDir!, { recursive: true, force: true });
 
   logger.success(`${name} has been removed.`);
 };
