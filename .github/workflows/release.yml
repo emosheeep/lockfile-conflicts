@@ -9,8 +9,7 @@ on:
 
 jobs:
   release-package:
-    # triggered when a branch starts with changeset-release/* has been merged into master
-    if: github.event.pull_request.merged && startsWith(github.head_ref, 'changeset-release/')
+    if: github.event.pull_request.merged
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -22,10 +21,20 @@ jobs:
           version: 8
           run_install: true
 
-      - name: Publish to npm
+      - name: Version Package
+        id: versioning
+        run: |
+          npx changeset version
+          echo "::set-output name=tag::v$(node -pe "require('./package.json').version")"
+          git restore .
+
+      # consume changesets and create pr if it exists, otherwise publish package
+      - name: Create Release Pull Request or Publish to npm
         uses: changesets/action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         with:
-          publish: npx changeset version
+          publish: npx changeset publish
+          commit: "chore: release ${{ steps.versioning.outputs.tag }}"
+          title: "chore: release ${{ steps.versioning.outputs.tag }}"
