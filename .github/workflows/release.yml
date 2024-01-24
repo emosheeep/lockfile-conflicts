@@ -7,6 +7,10 @@ on:
     branches: # target branch
       - master
 
+permissions:
+  pull-requests: write
+  contents: write
+
 jobs:
   release-package:
     if: github.event.pull_request.merged
