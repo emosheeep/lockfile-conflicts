@@ -48,7 +48,7 @@ When it was installed. it has done these things:
 2. Add git config to local repository, you can view them through `git config -l --local`.
 3. Add shell scripts to some git hooks, which helps to execute custom script at proper time.
 
-Don't worry, all of these can be removed easily by execute `npx lockfile uninstall [--force]`
+Don't worry, all of these can be removed easily by execute `lockfile uninstall [--force]`
 
 # About merge driver
 

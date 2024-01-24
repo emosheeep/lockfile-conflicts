@@ -19,17 +19,13 @@ export const configURL = new URL('../config', import.meta.url);
 
 export const skipEnvName = 'SKIP_LOCKFILE_HOOKS';
 
-export const shellBaseDir = `cd $(dirname $(git rev-parse --show-toplevel)/$(git config ${gitConfigKey.configDir}))`;
-
-export const customDriver = `${shellBaseDir} && npx lockfile merge %O %A %B %P`;
-
 export const hooks = {
-  'pre-rebase': ['npx lockfile cleanup --only'],
-  'post-checkout': ['npx lockfile cleanup --only'],
-  'post-commit': ['npx lockfile cleanup'],
+  'pre-rebase': ['lockfile cleanup --only'],
+  'post-checkout': ['lockfile cleanup --only'],
+  'post-commit': ['lockfile cleanup'],
   'post-rewrite': [
     `if [ "$1" = "rebase" ]; then`,
-    '  npx lockfile cleanup;',
+    '  lockfile cleanup;',
     'fi;',
   ],
 };
