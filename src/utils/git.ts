@@ -29,9 +29,5 @@ export const getCurrentBranch = () =>
 export const isMerging = () =>
   fs.existsSync(path.resolve(getGitDirectory(), 'MERGE_HEAD'));
 
-export const isRebasing = () => {
-  const gitdir = getGitDirectory();
-  return ['rebase-apply', 'rebase-merge'].some((v) =>
-    fs.existsSync(path.resolve(gitdir, v)),
-  );
-};
+export const isRebasing = () =>
+  fs.existsSync(path.resolve(getGitDirectory(), 'rebase-merge'));

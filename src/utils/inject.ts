@@ -42,7 +42,8 @@ export function injectShellScript(filePath: string, scripts: string[]) {
     "# Don't modify these lines and keep them at the bottom of the file.",
     '# Because they will be removed and re-added every time in installation.',
     '(',
-    [`export PATH=$PATH:${binDir}`, ...scripts],
+    // Use local installed package first.
+    [`export PATH=${binDir}:$PATH`, ...scripts],
     ')',
     banner[1],
   ]);

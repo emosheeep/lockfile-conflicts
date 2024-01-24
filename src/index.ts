@@ -58,10 +58,10 @@ program
 program
   .command('cleanup')
   .description('Clean log files and execute `runAfter` script if needed.')
-  .option('--only', 'Remove temp files only.')
+  .requiredOption('--hook <name>', 'Pre-defined git hook name.')
   .hook('preAction', ensureConfigExit)
   .action((options) =>
-    import('./cleanup').then((v) => v.default(options.only)),
+    import('./cleanup').then((v) => v.default(options.hook)),
   );
 
 program

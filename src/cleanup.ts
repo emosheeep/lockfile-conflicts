@@ -11,32 +11,45 @@ import {
   logger,
   shouldSkipExec,
   splitFile,
+  hooks,
 } from '@/utils';
 
-export default async (
-  /** Remove temp flies only */
-  only = false,
-) => {
-  if (shouldSkipExec()) return; // avoid loop
-  /**
-   * checkout in rebase/merge will trigger post-checkout,
-   * which may cause temp files to be removed.
-   * as a result, the `runAfter` script won't be executed after
-   * the rebase is completed.
-   */
-  if (isMerging() || isRebasing()) return;
+export default async (hook: keyof typeof hooks) => {
+  if (shouldSkipExec()) return; // Avoid loop.
 
   const configDir = getConfigDir();
-  if (!configDir) return;
+  if (!configDir) return; // Not initialized, exit.
+
+  if (isMerging() || isRebasing()) {
+    /**
+     * 1. post-checkout
+     * checkout in rebase/merge will trigger `post-checkout` hook, which cause
+     * temp files to be removed. As a result, the `runAfter` script won't
+     * be executed after the rebase/merge is completed.
+     *
+     * 2. post-commit
+     * rebase process may create new commit which triggers post-commit hook, it
+     * causes same problem list above.
+     *
+     * In conclusion, we should exit directly.
+     */
+    if (hook === 'post-checkout' || hook === 'post-commit') {
+      return;
+    }
+  }
 
   const logFile = path.resolve(configDir, conflictFileName);
   const isLogFileExist = fs.existsSync(logFile);
   const conflictFiles = new Set(isLogFileExist ? splitFile(logFile) : []);
-  execGitCommand(`git clean -Xf ${configDir}`); // cleanup ignored files.
 
-  if (only || !conflictFiles.size) return;
+  execGitCommand(`git clean -Xf ${configDir}`); // Cleanup ignored files.
 
-  logger.info(`Note there're conflicts on lockfile before:`);
+  if (!conflictFiles.size) return; // No conflicts, exit.
+
+  // These hooks are only used to clean temp files, exit.
+  if (hook === 'pre-rebase' || hook === 'post-checkout') return;
+
+  logger.info(chalk.bold(`Note there're conflicts on lockfile before:`));
   conflictFiles.forEach((v) => logger.info(`${chalk.blue('→')} ${v}`));
   logger.info(chalk.bold(`And we've accepted theirs version.`));
 

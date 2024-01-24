@@ -7,5 +7,5 @@ export const logger = {
 };
 
 export function printHints(filename: string) {
-  logger.info(`${filename} conflicts, use theirs version.`);
+  logger.info(`${filename} conflicts, accept theirs version.`);
 }
