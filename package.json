@@ -1,6 +1,6 @@
 {
   "name": "lockfile-conflicts",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "A custom merge driver, aims to handle lockfile conflicts automatically in merge/rebase process.",
   "author": "秦旭洋 <emosheep@qq.com>",
