@@ -5,7 +5,7 @@
 ![license](https://img.shields.io/npm/l/lockfile-conflicts)
 ![stars](https://img.shields.io/github/stars/emosheeep/lockfile-conflicts)
 
-Helps to merge certain files and execute commands after merge/rebase.
+Helps to merge lockfile conflicts and update automatically after merge/rebase.
 
 ## Quick start
 
@@ -24,11 +24,11 @@ npm run prepare
 
 And then commit the changes made by the command. After installed, a custom merge driver will be defined and applied to merge certain files.
 
-## Uses with other tool
+## Use with git hook
 
 In order to execute custom scripts automatically at proper time, we need to inject some shell script to git hooks, **which may cause conflicts with other git hook tools**, e.g. _husky, simple-git-hooks_ and so on.
 
-In this case, you can place install script of lockfile-conflicts right after theirs. For an example:
+In this case, you can place install script right after theirs. For an example:
 
 ```json
 {
@@ -40,15 +40,15 @@ In this case, you can place install script of lockfile-conflicts right after the
 }
 ```
 
-## How does it install
+## What does it do
 
 When it was installed. it has done these things:
 
 1. Initialize config directory (default is .lockfile), see [Introduction](./config/README.md).
 2. Add git config to local repository, you can view them through `git config -l --local`.
-3. Add shell scripts to some git hooks, which helps to execute custom script at proper time.
+3. Inject shell scripts to some git hooks, which helps to execute custom script at proper time.
 
-Don't worry, all of these can be removed easily by execute `lockfile uninstall [--force]`
+Don't worry, all of these can be removed easily by execute `npx lockfile uninstall [--force]`, they can hardly make pollution.
 
 # About merge driver
 
@@ -100,6 +100,20 @@ Note that, much like git hooks, the `.git/config` file can't be checked in/share
 A common way of distributing merge drivers is to check the configuration file in elsewhere and provide a script to copy it to `.git/config`.
 
 In this project, the step above is included by `lockfile install` command.
+
+# Questions
+
+## Why does `runAfter` to be triggered weirdly?
+
+We execute `runAfter` by checking if there's a **conflicts information file** exist. 
+
+The file will be recorded in a temp location under the config directory when it happened, and will be removed when you successfully rebase or merge. All of these steps depend on specified git hooks and also will be triggered by them.
+
+But unfortunately, the lifecycle hooks that git provides are incomplete, which means we'll lose context and causes temp file remains if you abort a rebase or merge process.
+
+Next time you succeed to make a commit action, the `post-commit` hook triggers as usual but it will execute `runAfter` because the temp file exist. This is why the case happens.
+
+Don't worry about this, because **we'll delete temp file first to avoid mis-executing and these hook won't affect your commit result**. Just ignore it and then everything will be okay in next execution.
 
 # Contribution
 
