@@ -7,6 +7,8 @@
 
 Helps to merge lockfile conflicts and update automatically after merge/rebase.
 
+![example](https://raw.githubusercontent.com/emosheeep/lockfile-conflicts/HEAD/assets/lockfile-conflicts.gif)
+
 ## Quick start
 
 First of all, install the dependencies in your project.
