@@ -1,5 +1,11 @@
 # lockfile-conflicts
 
+## 0.3.0
+
+### Minor Changes
+
+- feat: use inherit stdio to print command log instead of spinner
+
 ## 0.2.1
 
 ### Patch Changes
