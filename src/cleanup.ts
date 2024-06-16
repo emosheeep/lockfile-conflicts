@@ -1,5 +1,4 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { execSync } from 'child_process';
 import { commitMessage as defaultCommitMessage } from '../config/config.json';
 import {
   conflictFileName,
@@ -49,32 +48,30 @@ export default async (hook: keyof typeof hooks) => {
   // These hooks are only used to clean temp files, exit.
   if (hook === 'pre-rebase' || hook === 'post-checkout') return;
 
-  logger.info(chalk.bold(`Note there're conflicts on lockfile before:`));
+  logger.info(
+    chalk.bold(
+      `Note there were conflicts on lockfile before and we accepted theirs version:`,
+    ),
+  );
   conflictFiles.forEach((v) => logger.info(`${chalk.blue('→')} ${v}`));
-  logger.info(chalk.bold(`And we've accepted theirs version.`));
 
   const { runAfter, commitMessage = defaultCommitMessage } = getConfigJson();
 
   if (runAfter) {
     logger.info(
       chalk.bold(
-        `Now we need to execute configured ${chalk.underline('runAfter')}`,
-        'script to update it, please wait.',
+        `Executing configured ${chalk.underline('runAfter')} command, please wait.`,
       ),
-    );
-    logger.info(
       chalk.bold(
-        "This action won't affect commit result, just exit with",
-        chalk.underline('Ctrl + C'),
-        'if it runs unexpectedly.',
+        'This operation has no side effects and can be safely quit with',
+        `${chalk.underline('Ctrl + C')} if it runs unexpected.`,
       ),
     );
-
-    const [cmd, ...params] = runAfter.trim().split(' ');
-    const displayedName = `${chalk.green(cmd)} ${params.join(' ')}`;
 
     try {
-      await spinner(displayedName, () => promisify(exec)(runAfter));
+      const [cmd, ...params] = runAfter.trim().split(' ');
+      logger.info(`$ ${chalk.green(cmd)} ${params.join(' ')}`);
+      execSync(runAfter, { stdio: 'inherit', encoding: 'utf8' });
     } catch (e: any) {
       console.log(e.stderr || e.stdout);
       return logger.error(
