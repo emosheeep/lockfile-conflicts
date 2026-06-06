@@ -20,12 +20,12 @@ export const configURL = new URL('../config', import.meta.url);
 export const skipEnvName = 'SKIP_LOCKFILE_HOOKS';
 
 export const hooks = {
-  'pre-rebase': ['lockfile cleanup --hook pre-rebase'],
-  'post-checkout': ['lockfile cleanup --hook post-checkout'],
-  'post-commit': ['lockfile cleanup --hook post-commit'],
+  'pre-rebase': ['lockfile hook pre-rebase || true'],
+  'post-checkout': ['lockfile hook post-checkout || true'],
+  'post-commit': ['lockfile hook post-commit || true'],
   'post-rewrite': [
     `if [ "$1" = "rebase" ]; then`,
-    '  lockfile cleanup --hook post-rewrite;',
+    '  lockfile hook post-rewrite || true;',
     'fi;',
   ],
 };

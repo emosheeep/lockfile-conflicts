@@ -23,12 +23,10 @@ function isSameDirectory(source: string, target: string) {
 }
 
 export default async (dir: string = '', force = false) => {
-  $.verbose = false;
-
   try {
     // save config folder path
     const repoRoot = await getRepoRoot();
-    const installedDir = getConfigDir();
+    const installedDir = await getConfigDir();
 
     const resolvedPath = path.resolve(process.cwd(), dir || defaultConfigDir);
     const relativePath = path.relative(repoRoot, resolvedPath) || '.';
@@ -37,7 +35,7 @@ export default async (dir: string = '', force = false) => {
     print(`installed dir - ${installedDir}`);
     print(`resolved path - ${resolvedPath}`);
     print(`relative path - ${relativePath}`);
-    print(`config path - ${configURL}`);
+    print(`config path - ${String(configURL)}`);
 
     // Write files
     if (!isPathAvailable(resolvedPath) || force) {
@@ -58,19 +56,21 @@ export default async (dir: string = '', force = false) => {
     }
 
     // git config should be applied after config dir has been set to avoid side effects
-    removeGitConfig(); // remove first
-    setGitConfig({ configDir: relativePath });
+    await removeGitConfig(); // remove first
+    await setGitConfig({ configDir: relativePath });
 
     // add git hooks
-    installHooks();
+    await installHooks();
 
     // add custom merge strategy
-    injectGitAttributes();
+    await injectGitAttributes();
 
     logger.success(`${name}${force ? ' force' : ''} installed.`);
   } catch (e: any) {
     console.log(e.stderr || e.message);
-    e.stack && print(e.stack);
+    if (e.stack) {
+      print(e.stack);
+    }
     logger.error(`Failed to initialize, try ${chalk.blue('--force')} option.`);
   }
 };

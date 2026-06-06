@@ -1,14 +1,14 @@
-import { appendConflictFile, execGitCommand, printHints } from './utils';
+import { appendConflictFile, printHints } from './utils';
 
-export default (
+export default async (
   base: string,
   ours: string,
   theirs: string,
   filename: string,
 ) => {
   // Accept theirs version
-  execGitCommand(`git merge-file --theirs ${base} ${ours} ${theirs}`);
+  await $`git merge-file --theirs ${base} ${ours} ${theirs}`;
   // preserve log file
-  appendConflictFile(filename);
+  await appendConflictFile(filename);
   printHints(filename);
 };

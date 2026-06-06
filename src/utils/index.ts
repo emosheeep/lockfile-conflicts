@@ -1,3 +1,5 @@
+import 'zx/globals';
+
 export * from './git';
 export * from './inject';
 export * from './config';

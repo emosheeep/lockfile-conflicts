@@ -2,7 +2,6 @@ import { execSync } from 'child_process';
 import { commitMessage as defaultCommitMessage } from '../config/config.json';
 import {
   conflictFileName,
-  execGitCommand,
   getConfigDir,
   getConfigJson,
   isMerging,
@@ -16,10 +15,10 @@ import {
 export default async (hook: keyof typeof hooks) => {
   if (shouldSkipExec()) return; // Avoid loop.
 
-  const configDir = getConfigDir();
+  const configDir = await getConfigDir();
   if (!configDir) return; // Not initialized, exit.
 
-  if (isMerging() || isRebasing()) {
+  if ((await isMerging()) || (await isRebasing())) {
     /**
      * 1. post-checkout
      * checkout in rebase/merge will trigger `post-checkout` hook, which cause
@@ -41,7 +40,7 @@ export default async (hook: keyof typeof hooks) => {
   const isLogFileExist = fs.existsSync(logFile);
   const conflictFiles = new Set(isLogFileExist ? splitFile(logFile) : []);
 
-  execGitCommand(`git clean -Xf ${configDir}`); // Cleanup ignored files.
+  await $`git clean -Xf ${configDir}`; // Cleanup ignored files.
 
   if (!conflictFiles.size) return; // No conflicts, exit.
 
@@ -55,7 +54,8 @@ export default async (hook: keyof typeof hooks) => {
   );
   conflictFiles.forEach((v) => logger.info(`${chalk.blue('→')} ${v}`));
 
-  const { runAfter, commitMessage = defaultCommitMessage } = getConfigJson();
+  const { runAfter, commitMessage = defaultCommitMessage } =
+    await getConfigJson();
 
   if (runAfter) {
     logger.info(
@@ -73,10 +73,15 @@ export default async (hook: keyof typeof hooks) => {
       logger.info(`$ ${chalk.green(cmd)} ${params.join(' ')}`);
       execSync(runAfter, { stdio: 'inherit', encoding: 'utf8' });
     } catch (e: any) {
-      console.log(e.stderr || e.stdout);
+      const output = e.stderr || e.stdout;
+      if (output) {
+        console.log(output);
+      }
+      const failedCommand = e.cmd || runAfter;
+      const reason = e.signal ? `signal ${e.signal}` : `exit code ${e.status}`;
       return logger.error(
         chalk.bold(
-          `Failed to run ${chalk.underline(e.cmd)} for some reasons, ` +
+          `Failed to run ${chalk.underline(failedCommand)} (${reason}), ` +
             'please manually make sure the lockfile is up-to-date.',
         ),
       );
@@ -84,7 +89,7 @@ export default async (hook: keyof typeof hooks) => {
 
     let wasHit = false;
     for (const filename of conflictFiles) {
-      if (execGitCommand(`git status -s ${filename}`)) {
+      if ((await $`git status -s ${filename}`).valueOf()) {
         await $`git add ${filename}`;
         wasHit = true;
       }

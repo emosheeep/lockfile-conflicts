@@ -1,4 +1,7 @@
 #!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
+set -e
 
-npx lint-staged
+export PATH="node_modules/.bin:$PATH"
+
+oxlint --type-aware --type-check --deny-warnings --fix .
+oxfmt --check .

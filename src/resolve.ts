@@ -1,6 +1,5 @@
 import { matcher } from 'matcher';
 import {
-  execGitCommand,
   getConfigJson,
   isMerging,
   isRebasing,
@@ -8,14 +7,16 @@ import {
   printHints,
 } from '@/utils';
 
-export default () => {
-  if (!isMerging() || !isRebasing()) {
+export default async () => {
+  if (!(await isMerging()) || !(await isRebasing())) {
     return logger.print('Not in a merge/rebase process?');
   }
 
-  const { lockfilePattern } = getConfigJson();
+  const { lockfilePattern } = await getConfigJson();
 
-  const unmergedResult = execGitCommand(`git diff --name-only --diff-filter=U`);
+  const unmergedResult = (
+    await $`git diff --name-only --diff-filter=U`
+  ).valueOf();
   const matchedFiles = matcher(
     unmergedResult.split('\n').filter(Boolean),
     lockfilePattern,
@@ -24,7 +25,7 @@ export default () => {
   for (const filename of matchedFiles) {
     printHints(filename);
     /** Discard local changes of lockfile to avoid breaking. */
-    execGitCommand(`git reset HEAD -- ${filename}`);
-    execGitCommand(`git restore ${filename}`);
+    await $`git reset HEAD -- ${filename}`;
+    await $`git restore ${filename}`;
   }
 };

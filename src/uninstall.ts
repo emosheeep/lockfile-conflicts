@@ -9,15 +9,15 @@ import {
 
 export default async () => {
   // remove git hooks
-  uninstallHooks();
+  await uninstallHooks();
 
   // remove merge strategy
-  removeGitAttributes();
+  await removeGitAttributes();
 
-  const configDir = getConfigDir();
+  const configDir = await getConfigDir();
 
   // reset git config
-  removeGitConfig();
+  await removeGitConfig();
 
   // remove config directory
   fs.rmSync(configDir!, { recursive: true, force: true });

@@ -1,4 +1,6 @@
 #!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
+set -e
 
-npx commitlint -e
+export PATH="node_modules/.bin:$PATH"
+
+commitlint --edit "$1"

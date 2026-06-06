@@ -1,4 +1,4 @@
-import { execGitCommand, getRepoRoot } from './git';
+import { getRepoRoot } from './git';
 import {
   conflictFileName,
   configFileName,
@@ -8,13 +8,13 @@ import {
 } from './constants';
 
 export interface ConfigJson {
-  commitMessage: string;
+  commitMessage?: string;
   runAfter: string;
   lockfilePattern: string;
 }
 
-export function appendConflictFile(filename: string) {
-  const configDir = getConfigDir();
+export async function appendConflictFile(filename: string) {
+  const configDir = await getConfigDir();
   if (!configDir) return;
   const filePath = path.resolve(configDir, conflictFileName);
   if (!fs.existsSync(filePath)) {
@@ -26,15 +26,16 @@ export function appendConflictFile(filename: string) {
 }
 
 /** Get absolute path of configDir */
-export function getConfigDir() {
-  const configDir = getGitConfig(gitConfigKey.configDir);
+export async function getConfigDir() {
+  const configDir = await getGitConfig(gitConfigKey.configDir);
   if (configDir) {
-    return path.resolve(getRepoRoot(), configDir);
+    return path.resolve(await getRepoRoot(), configDir);
   }
 }
 
-export function getRelBinDir(configDir = getConfigDir()) {
-  const repoRoot = getRepoRoot();
+export async function getRelBinDir(configDir?: string) {
+  configDir ??= await getConfigDir();
+  const repoRoot = await getRepoRoot();
   // Should be installed in the same directory as node_modules
   return path.relative(
     repoRoot,
@@ -45,43 +46,46 @@ export function getRelBinDir(configDir = getConfigDir()) {
   );
 }
 
-export function getConfigJson() {
+export async function getConfigJson() {
   return fs.readJsonSync(
-    path.resolve(getConfigDir()!, configFileName),
+    path.resolve((await getConfigDir())!, configFileName),
   ) as ConfigJson;
 }
 
-export function getGitConfig(key: string): string {
-  try {
-    return execGitCommand(`git config --local ${key}`);
-  } catch (error) {
-    return '';
-  }
+export async function getGitConfig(key: string): Promise<string> {
+  const output = await $`git config --local ${key}`.quiet().nothrow();
+  return output.ok ? output.valueOf() : '';
 }
 
-export function setGitConfig({ configDir }: { configDir: string }) {
+export async function setGitConfig({ configDir }: { configDir: string }) {
   for (const [key, value] of [
     [gitConfigKey.configDir, configDir || defaultConfigDir],
     [
       gitConfigKey.mergeDriver,
-      `${path.join(getRelBinDir(configDir), 'lockfile')} merge %O %A %B %P`,
+      `${path.join(await getRelBinDir(configDir), 'lockfile')} merge %O %A %B %P`,
     ],
   ]) {
-    execGitCommand(`git config --local ${key} "${value}"`);
+    await $`git config --local ${key} ${value}`;
   }
 }
 
-export function removeGitConfig() {
-  try {
-    const reset = (key: string) =>
-      execGitCommand(`git config --local --unset ${key}`);
-    // remove known config
-    Object.values(gitConfigKey).forEach((key) => reset(key));
-    // remove possible legacy config
-    const stdout = execGitCommand(`git config --get-regexp "^${name}"`);
-    for (const item of stdout.split('\n').filter(Boolean)) {
-      const [configName] = item.split(' ');
-      reset(configName);
-    }
-  } catch (e) {}
+export async function removeGitConfig() {
+  const reset = (key: string) =>
+    $`git config --local --unset ${key}`.quiet().nothrow();
+
+  // remove known config
+  for (const key of Object.values(gitConfigKey)) {
+    await reset(key);
+  }
+
+  // remove possible legacy config
+  const legacyConfig = await $`git config --get-regexp ${`^${name}`}`
+    .quiet()
+    .nothrow();
+  if (!legacyConfig.ok) return;
+
+  for (const item of legacyConfig.valueOf().split('\n').filter(Boolean)) {
+    const [configName] = item.split(' ');
+    await reset(configName);
+  }
 }

@@ -1,0 +1,8 @@
+{
+  "endOfLine": "lf",
+  "singleQuote": true,
+  "trailingComma": "all",
+  "printWidth": 80,
+  "sortPackageJson": false,
+  "ignorePatterns": ["*.md", "**/*.yml", "**/*.yaml"]
+}

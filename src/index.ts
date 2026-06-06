@@ -3,18 +3,29 @@ import 'zx/globals';
 import updateNotifier from 'update-notifier';
 import { createCommand } from 'commander';
 import { description, version, name } from '../package.json';
-import { getConfigJson, getRepoRoot, logger, skipEnvName } from './utils';
+import {
+  getConfigJson,
+  getRepoRoot,
+  logger,
+  skipEnvName,
+  hooks,
+} from './utils';
+
+function isVerboseMode() {
+  return Boolean(process.env.DEBUG);
+}
 
 // initialize zx
-$.cwd = getRepoRoot();
+$.verbose = isVerboseMode();
+$.cwd = await getRepoRoot();
 $.env = { ...process.env, [skipEnvName]: 'true' };
 // platform compatibility
 path = path.posix;
 
-const ensureConfigExit = () => {
+const ensureConfigExit = async () => {
   try {
-    getConfigJson();
-  } catch (e) {
+    await getConfigJson();
+  } catch {
     logger.print('No configurations were found.');
     process.exit(0);
   }
@@ -56,21 +67,22 @@ program
   .action(() => import('./resolve').then((v) => v.default()));
 
 program
-  .command('cleanup')
-  .description('Clean log files and execute `runAfter` script if needed.')
-  .requiredOption('--hook <name>', 'Pre-defined git hook name.')
-  .hook('preAction', ensureConfigExit)
-  .action((options) =>
-    import('./cleanup').then((v) => v.default(options.hook)),
+  .command('hook')
+  .argument('<name>', 'Pre-defined git hook name.')
+  .description('Run lockfile-conflicts logic from a git hook.')
+  .action((hookName: keyof typeof hooks) =>
+    import('./hook').then((v) => v.default(hookName)),
   );
 
 program
   .command('uninstall')
   .description('Remove githooks and relevant local git configs.')
   .option('-f,--force', 'Force run uninstall process.')
-  .hook('preAction', (cmd) => {
-    !cmd.opts().force && ensureConfigExit();
+  .hook('preAction', async (cmd) => {
+    if (!cmd.opts().force) {
+      await ensureConfigExit();
+    }
   })
   .action(() => import('./uninstall').then((v) => v.default()));
 
-program.parse();
+await program.parseAsync();
