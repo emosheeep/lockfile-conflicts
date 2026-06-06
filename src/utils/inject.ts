@@ -1,25 +1,25 @@
-import { getRelBinDir, getConfigJson } from './config';
+import { getConfigJson, getRelBinDir } from './config';
 import { name, banner, hooks } from './constants';
-import { getGirAttributes, getHooksPath } from './git';
+import { getGirAttributes, resolveHookTarget } from './git';
 import { joinNestedArray, splitFile } from './helper';
 
-export function installHooks() {
-  uninstallHooks();
-  const hookDir = getHooksPath();
+export async function installHooks() {
+  await uninstallHooks();
   for (const [hookName, scripts] of Object.entries(hooks)) {
-    const hookPath = path.resolve(hookDir, hookName);
-    injectShellScript(hookPath, scripts); // Add shell script into git hook
+    const { hookPath } = await resolveHookTarget(hookName);
+    await injectShellScript(hookPath, scripts); // Add shell script into git hook
     fs.chmodSync(hookPath, '755'); // make file executable.
   }
 }
 
-export function uninstallHooks() {
-  const hookDir = getHooksPath();
-  // Remove possible script from the other hooks that are not configured.
-  for (const hookName of fs.readdirSync(hookDir)) {
-    const hookPath = path.resolve(hookDir, hookName);
-    if (fs.statSync(hookPath).isDirectory()) continue;
-    replaceShellScript(hookPath, '');
+export async function uninstallHooks() {
+  // Remove possible stale injected blocks from both the raw Git-executed hook
+  // and the resolved user hook. They can differ when a hook manager uses shim
+  // scripts, for example Husky v9's `.husky/_/<hook>` launcher.
+  for (const hookName of Object.keys(hooks)) {
+    for (const hookPath of (await resolveHookTarget(hookName)).cleanupPaths) {
+      replaceShellScript(hookPath, '');
+    }
   }
 }
 
@@ -35,15 +35,22 @@ export function replaceShellScript(filePath: string, content?: string) {
   }
 }
 
-export function injectShellScript(filePath: string, scripts: string[]) {
-  const binDir = getRelBinDir();
+export async function injectShellScript(filePath: string, scripts: string[]) {
+  const binDir = await getRelBinDir();
   const scriptContent = joinNestedArray([
     banner[0],
     "# Don't modify these lines and keep them at the bottom of the file.",
     '# Because they will be removed and re-added every time in installation.',
     '(',
-    // Use local installed package first.
-    [`export PATH=${binDir}:$PATH`, ...scripts],
+    // Keep environment changes inside this subshell and resolve the executable
+    // from the current worktree at runtime.
+    [
+      'repo_root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)',
+      'cd "$repo_root" || exit 0',
+      `export PATH=${binDir}:$PATH`,
+      'command -v lockfile >/dev/null 2>&1 || exit 0',
+      ...scripts,
+    ],
     ')',
     banner[1],
   ]);
@@ -55,13 +62,15 @@ export function injectShellScript(filePath: string, scripts: string[]) {
   }
 
   // replace the old scripts with new scripts.
-  replaceShellScript(filePath, scriptContent) ||
+  const wasReplaced = replaceShellScript(filePath, scriptContent);
+  if (!wasReplaced) {
     // append scripts
     appendFile(filePath, scriptContent);
+  }
 }
 
-export function removeGitAttributes() {
-  const filePath = getGirAttributes();
+export async function removeGitAttributes() {
+  const filePath = await getGirAttributes();
   if (!fs.existsSync(filePath)) return;
   const pair = `merge=${name}`;
 
@@ -76,12 +85,14 @@ export function removeGitAttributes() {
     wasHit = true;
   }
 
-  wasHit && fs.writeFile(filePath, lines.join('\n'));
+  if (wasHit) {
+    fs.writeFile(filePath, lines.join('\n'));
+  }
 }
 
-export function injectGitAttributes() {
-  const { lockfilePattern } = getConfigJson();
-  const filePath = getGirAttributes();
+export async function injectGitAttributes() {
+  const { lockfilePattern } = await getConfigJson();
+  const filePath = await getGirAttributes();
   const pair = `merge=${name}`;
   const pattern = `${lockfilePattern} ${pair}`;
 
@@ -100,9 +111,11 @@ export function injectGitAttributes() {
     }
   }
 
-  wasHit
-    ? fs.writeFileSync(filePath, lines.join('\n'))
-    : appendFile(filePath, pattern);
+  if (wasHit) {
+    fs.writeFileSync(filePath, lines.join('\n'));
+  } else {
+    appendFile(filePath, pattern);
+  }
 }
 
 /** Append content to the end of file and add a newline if needed */

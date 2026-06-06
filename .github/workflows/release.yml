@@ -5,7 +5,7 @@ on:
   pull_request:
     types:
       - closed
-    branches: # target branch
+    branches:
       - master
 
 permissions:
@@ -14,32 +14,34 @@ permissions:
 
 jobs:
   release-package:
-    if: github.event.pull_request.merged || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
-          node-version: 18
-      - uses: pnpm/action-setup@v2.2.4
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - uses: pnpm/action-setup@v4
         with:
-          version: 8
           run_install: true
 
       - name: Version Package
         id: versioning
         run: |
-          npx changeset version
-          echo "::set-output name=tag::v$(node -pe "require('./package.json').version")"
+          pnpm changeset version
+          echo "tag=v$(node -pe "require('./package.json').version")" >> "$GITHUB_OUTPUT"
           git restore .
 
-      # consume changesets and create pr if it exists, otherwise publish package
       - name: Create Release Pull Request or Publish to npm
         uses: changesets/action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         with:
-          publish: npx changeset publish
+          version: pnpm changeset version
+          publish: pnpm changeset publish
           commit: "chore: release ${{ steps.versioning.outputs.tag }}"
           title: "chore: release ${{ steps.versioning.outputs.tag }}"
