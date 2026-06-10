@@ -3,3 +3,7 @@ dist
 types
 .idea
 .DS_Store
+
+# Native build output
+native/**/target
+bin
