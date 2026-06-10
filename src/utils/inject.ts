@@ -45,9 +45,7 @@ export async function injectShellScript(filePath: string, scripts: string[]) {
     // Keep environment changes inside this subshell and resolve the executable
     // from the current worktree at runtime.
     [
-      'repo_root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)',
-      'cd "$repo_root" || exit 0',
-      `export PATH=${binDir}:$PATH`,
+      `export PATH=${quoteShellPath(binDir)}:$PATH`,
       'command -v lockfile >/dev/null 2>&1 || exit 0',
       ...scripts,
     ],
@@ -116,6 +114,11 @@ export async function injectGitAttributes() {
   } else {
     appendFile(filePath, pattern);
   }
+}
+
+/** Quote a path so the injected hook remains valid for paths with spaces or quotes. */
+function quoteShellPath(value: string) {
+  return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
 /** Append content to the end of file and add a newline if needed */

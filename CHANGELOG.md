@@ -1,5 +1,15 @@
 # lockfile-conflicts
 
+## 0.5.0
+
+### Minor Changes
+
+- Add a native foreground helper so Ctrl+C during `runAfter` does not interrupt an in-progress Git rebase.
+- Make hook cleanup resilient when `runAfter` or lockfile hook execution fails, avoiding stale Git rebase state.
+- Package foreground helper binaries for common Linux and macOS targets and fall back to the previous direct execution path when no helper is available.
+- Add a timestamped test-publish workflow for alpha/beta/next prereleases.
+- Simplify generated hook injection so it only prepends the local bin directory to find `lockfile`; runAfter keeps using the user's normal environment.
+
 ## 0.4.0
 
 ### Minor Changes

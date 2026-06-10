@@ -151,6 +151,9 @@ async function assertManagerHookInitializedAndExecutes(manager) {
         `expected lockfile block in Husky user hook: ${userHook}`,
       );
     }
+    if (userHook.includes('git rev-parse --show-toplevel')) {
+      throw new Error(`expected simplified Husky hook block: ${userHook}`);
+    }
   } else {
     const hook = await fs.readFile(gitHooksPath, 'utf8');
     if (
@@ -160,6 +163,9 @@ async function assertManagerHookInitializedAndExecutes(manager) {
       throw new Error(
         `expected simple-git-hooks and lockfile in hook: ${hook}`,
       );
+    }
+    if (hook.includes('git rev-parse --show-toplevel')) {
+      throw new Error(`expected simplified simple-git-hooks block: ${hook}`);
     }
   }
 
