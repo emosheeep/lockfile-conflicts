@@ -1,5 +1,5 @@
-import { execSync } from 'child_process';
 import { commitMessage as defaultCommitMessage } from '../config/config.json';
+import { runAfterCommand } from './run-after';
 import {
   conflictFileName,
   getConfigDir,
@@ -11,6 +11,10 @@ import {
   splitFile,
   hooks,
 } from '@/utils';
+
+async function cleanIgnoredFiles(configDir: string) {
+  await $`git clean -Xfd ${configDir}`; // Cleanup ignored files/directories.
+}
 
 export default async (hook: keyof typeof hooks) => {
   if (shouldSkipExec()) return; // Avoid loop.
@@ -40,7 +44,7 @@ export default async (hook: keyof typeof hooks) => {
   const isLogFileExist = fs.existsSync(logFile);
   const conflictFiles = new Set(isLogFileExist ? splitFile(logFile) : []);
 
-  await $`git clean -Xf ${configDir}`; // Cleanup ignored files.
+  await cleanIgnoredFiles(configDir);
 
   if (!conflictFiles.size) return; // No conflicts, exit.
 
@@ -68,23 +72,41 @@ export default async (hook: keyof typeof hooks) => {
       ),
     );
 
+    let wasInterrupted = false;
+    const markInterrupted = () => {
+      wasInterrupted = true;
+    };
+
+    process.once('SIGINT', markInterrupted);
+    process.once('SIGTERM', markInterrupted);
+
     try {
       const [cmd, ...params] = runAfter.trim().split(' ');
       logger.info(`$ ${chalk.green(cmd)} ${params.join(' ')}`);
-      execSync(runAfter, { stdio: 'inherit', encoding: 'utf8' });
+
+      runAfterCommand(runAfter);
     } catch (e: any) {
       const output = e.stderr || e.stdout;
       if (output) {
         console.log(output);
       }
       const failedCommand = e.cmd || runAfter;
-      const reason = e.signal ? `signal ${e.signal}` : `exit code ${e.status}`;
+      const reason = e.signal
+        ? `signal ${e.signal}`
+        : wasInterrupted
+          ? 'interrupted'
+          : `exit code ${e.status}`;
       return logger.error(
         chalk.bold(
           `Failed to run ${chalk.underline(failedCommand)} (${reason}), ` +
             'please manually make sure the lockfile is up-to-date.',
         ),
       );
+    } finally {
+      await cleanIgnoredFiles(configDir);
+
+      process.removeListener('SIGINT', markInterrupted);
+      process.removeListener('SIGTERM', markInterrupted);
     }
 
     let wasHit = false;

@@ -12,11 +12,12 @@
   "files": [
     "dist",
     "config/*",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "bin/**/foreground"
   ],
   "scripts": {
     "prepare": "husky",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "npm run build && npm run build:foreground",
     "lint": "oxlint --type-aware --type-check --deny-warnings --fix .",
     "build": "tsup",
     "watch": "tsup --watch",
@@ -25,7 +26,8 @@
     "lint:check": "oxlint --type-aware --type-check --deny-warnings .",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
-    "test:smoke": "pnpm run build && node scripts/smoke.mjs"
+    "test:smoke": "pnpm run build && node scripts/smoke.mjs",
+    "build:foreground": "node native/foreground/build.mjs"
   },
   "dependencies": {
     "commander": "^15.0.0",
