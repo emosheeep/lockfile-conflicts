@@ -336,7 +336,12 @@ async function ensureTestForegroundHelper() {
   wasForegroundHelperBuilt = true;
 }
 
-async function runRealRebaseWithRunAfter(manager, name, runAfter) {
+async function runRealRebaseWithRunAfter(
+  manager,
+  name,
+  runAfter,
+  options = {},
+) {
   const { repo, hookLog } = await createRealLockfileConflictRepo(
     manager,
     name,
@@ -349,9 +354,23 @@ async function runRealRebaseWithRunAfter(manager, name, runAfter) {
     env: gitEnv(),
     nothrow: true,
   })`git rebase main`;
+  const rebaseOutput = `${rebase.stdout}\n${rebase.stderr}`;
   if (rebase.exitCode !== 0) {
     throw new Error(
-      `expected ${manager} real git rebase to continue, got ${rebase.exitCode}:\n${rebase.stdout}\n${rebase.stderr}`,
+      `expected ${manager} real git rebase to continue, got ${rebase.exitCode}:\n${rebaseOutput}`,
+    );
+  }
+  if (
+    options.outputIncludes &&
+    !rebaseOutput.includes(options.outputIncludes)
+  ) {
+    throw new Error(
+      `expected ${manager} rebase output to include ${options.outputIncludes}:\n${rebaseOutput}`,
+    );
+  }
+  if (options.outputExcludes && rebaseOutput.includes(options.outputExcludes)) {
+    throw new Error(
+      `expected ${manager} rebase output not to include ${options.outputExcludes}:\n${rebaseOutput}`,
     );
   }
 
@@ -558,6 +577,10 @@ for (const manager of managers) {
         manager,
         `${manager}-runafter-interrupt-real-rebase`,
         'sh -c "kill -INT $PPID; exit 130"',
+        {
+          outputIncludes: '(interrupted)',
+          outputExcludes: '(exit code 130)',
+        },
       ),
   );
 
@@ -610,6 +633,40 @@ for (const manager of managers) {
   );
 
   await run(
+    `${manager} Ctrl+C stops lingering runAfter process group`,
+    async () => {
+      await ensureTestForegroundHelper();
+      const { repo } = await createRealLockfileConflictRepo(
+        manager,
+        `${manager}-runafter-ctrl-c-lingering-process`,
+        `sh -c '(trap "" INT TERM HUP; while :; do echo lingering >> .git/linger; sleep 0.05; done) & node -e "console.log(\\"setTimeout lingering\\"); setTimeout(()=>{},30000)"'`,
+      );
+      const rebase = await runRebaseInPtyAndInterrupt(repo);
+      if (rebase.exitCode !== 0) {
+        throw new Error(
+          `expected lingering runAfter rebase to finish, got ${rebase.exitCode}:
+${rebase.output}`,
+        );
+      }
+      const lingerFile = path.join(repo, '.git/linger');
+      const before = (await fs.pathExists(lingerFile))
+        ? (await fs.readFile(lingerFile, 'utf8')).split('\n').filter(Boolean)
+            .length
+        : 0;
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      const after = (await fs.pathExists(lingerFile))
+        ? (await fs.readFile(lingerFile, 'utf8')).split('\n').filter(Boolean)
+            .length
+        : 0;
+      if (after > before) {
+        throw new Error(
+          `expected interrupted runAfter process group to stop, linger lines grew from ${before} to ${after}`,
+        );
+      }
+    },
+  );
+
+  await run(
     `${manager} Ctrl+C in real runAfter does not interrupt real rebase`,
     async () => {
       await ensureTestForegroundHelper();
@@ -625,6 +682,16 @@ for (const manager of managers) {
       if (rebase.exitCode !== 0) {
         throw new Error(
           `expected interrupted runAfter rebase to finish, got ${rebase.exitCode}:\n${rebase.output}`,
+        );
+      }
+      if (!rebase.output.includes('(interrupted)')) {
+        throw new Error(
+          `expected interrupted reason in Ctrl+C output:\n${rebase.output}`,
+        );
+      }
+      if (rebase.output.includes('(exit code 130)')) {
+        throw new Error(
+          `expected no exit code 130 reason in Ctrl+C output:\n${rebase.output}`,
         );
       }
       await assertNoRebaseState(repo, `${manager} Ctrl+C real rebase`);

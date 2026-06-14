@@ -1,6 +1,6 @@
 {
   "name": "lockfile-conflicts",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "type": "module",
   "packageManager": "pnpm@11.5.2",
   "description": "A custom merge driver, aims to handle lockfile conflicts automatically in merge/rebase process.",

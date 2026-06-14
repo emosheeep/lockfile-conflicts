@@ -1,5 +1,12 @@
 # lockfile-conflicts
 
+## 0.5.2
+
+### Patch Changes
+
+- Improve interrupted `runAfter` reporting so Ctrl+C displays as `interrupted` instead of `exit code 130`.
+- Stop lingering `runAfter` process groups after Ctrl+C so command output does not continue after Git rebase completes.
+
 ## 0.5.1
 
 ### Patch Changes

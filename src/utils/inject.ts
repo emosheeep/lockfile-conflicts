@@ -84,7 +84,7 @@ export async function removeGitAttributes() {
   }
 
   if (wasHit) {
-    fs.writeFile(filePath, lines.join('\n'));
+    await fs.writeFile(filePath, lines.join('\n'));
   }
 }
 

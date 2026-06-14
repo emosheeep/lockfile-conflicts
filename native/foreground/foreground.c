@@ -27,6 +27,32 @@ static void restore_signal(int signum, void (*handler)(int)) {
   }
 }
 
+static int is_interrupted_status(int status) {
+  if (WIFSIGNALED(status)) {
+    int signal_number = WTERMSIG(status);
+    return signal_number == SIGINT || signal_number == SIGTERM;
+  }
+  if (WIFEXITED(status)) {
+    int exit_code = WEXITSTATUS(status);
+    return exit_code == 130 || exit_code == 143;
+  }
+  return 0;
+}
+
+static void terminate_process_group(pid_t pgid) {
+  if (pgid <= 0) {
+    return;
+  }
+
+  if (kill(-pgid, SIGTERM) < 0 && errno != ESRCH) {
+    perror("foreground: terminate process group");
+  }
+  usleep(100000);
+  if (kill(-pgid, SIGKILL) < 0 && errno != ESRCH) {
+    perror("foreground: kill process group");
+  }
+}
+
 int main(int argc, char **argv) {
   if (argc > 1 && argv[1][0] == '-' && argv[1][1] == '-' && argv[1][2] == '\0') {
     argc--;
@@ -100,6 +126,10 @@ int main(int argc, char **argv) {
     perror("foreground: waitpid");
     wait_failed = 1;
     break;
+  }
+
+  if (!wait_failed && is_interrupted_status(status)) {
+    terminate_process_group(child);
   }
 
   int restore_failed = restore_tty(tty_fd, old_pgrp) < 0;
