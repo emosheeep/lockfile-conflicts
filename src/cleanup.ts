@@ -83,7 +83,6 @@ export default async (hook: keyof typeof hooks) => {
     try {
       const [cmd, ...params] = runAfter.trim().split(' ');
       logger.info(`$ ${chalk.green(cmd)} ${params.join(' ')}`);
-      console.log();
 
       runAfterCommand(runAfter);
     } catch (e: any) {
@@ -92,11 +91,20 @@ export default async (hook: keyof typeof hooks) => {
         console.log(output);
       }
       const failedCommand = e.cmd || runAfter;
-      const reason = e.signal
-        ? `signal ${e.signal}`
-        : wasInterrupted
-          ? 'interrupted'
+      const wasInterruptedBySignal =
+        wasInterrupted ||
+        e.signal === 'SIGINT' ||
+        e.signal === 'SIGTERM' ||
+        e.status === 130 ||
+        e.status === 143;
+      const reason = wasInterruptedBySignal
+        ? 'interrupted'
+        : e.signal
+          ? `signal ${e.signal}`
           : `exit code ${e.status}`;
+      if (wasInterruptedBySignal) {
+        process.stdout.write('\n');
+      }
       return logger.error(
         chalk.bold(
           `Failed to run ${chalk.underline(failedCommand)} (${reason}), ` +
@@ -104,7 +112,6 @@ export default async (hook: keyof typeof hooks) => {
         ),
       );
     } finally {
-      console.log();
       await cleanIgnoredFiles(configDir);
 
       process.removeListener('SIGINT', markInterrupted);
