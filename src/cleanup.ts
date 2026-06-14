@@ -83,6 +83,7 @@ export default async (hook: keyof typeof hooks) => {
     try {
       const [cmd, ...params] = runAfter.trim().split(' ');
       logger.info(`$ ${chalk.green(cmd)} ${params.join(' ')}`);
+      console.log();
 
       runAfterCommand(runAfter);
     } catch (e: any) {
@@ -103,6 +104,7 @@ export default async (hook: keyof typeof hooks) => {
         ),
       );
     } finally {
+      console.log();
       await cleanIgnoredFiles(configDir);
 
       process.removeListener('SIGINT', markInterrupted);

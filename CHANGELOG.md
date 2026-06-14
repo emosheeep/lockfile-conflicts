@@ -1,5 +1,11 @@
 # lockfile-conflicts
 
+## 0.5.1
+
+### Patch Changes
+
+- Repair packaged foreground helper executable permissions at runtime, falling back to direct `runAfter` execution if the helper cannot be made executable.
+
 ## 0.5.0
 
 ### Minor Changes

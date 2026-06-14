@@ -306,6 +306,20 @@ sys.exit(exit_code)
   });
 }
 
+function currentPackageTarget() {
+  const libc =
+    process.platform === 'linux'
+      ? process.report?.getReport?.().header?.glibcVersionRuntime
+        ? '-gnu'
+        : '-musl'
+      : '';
+  return `${process.platform}-${process.arch}${libc}`;
+}
+
+function currentForegroundHelperPath() {
+  return path.join(root, 'bin', currentPackageTarget(), 'foreground');
+}
+
 let wasForegroundHelperBuilt = false;
 async function ensureTestForegroundHelper() {
   if (
@@ -563,6 +577,34 @@ for (const manager of managers) {
       );
       if (marker !== 'ok') {
         throw new Error(`expected fallback runAfter marker, got ${marker}`);
+      }
+    },
+  );
+
+  await run(
+    `${manager} non-executable foreground helper is repaired`,
+    async () => {
+      await ensureTestForegroundHelper();
+      const helperPath = currentForegroundHelperPath();
+      await fs.chmod(helperPath, 0o644);
+      const { repo } = await runRealRebaseWithRunAfter(
+        manager,
+        `${manager}-non-executable-helper-real-rebase`,
+        `node -e "require('fs').writeFileSync('.git/runafter-marker','ok')"`,
+      );
+      const marker = await fs.readFile(
+        path.join(repo, '.git/runafter-marker'),
+        'utf8',
+      );
+      if (marker !== 'ok') {
+        throw new Error(`expected runAfter marker, got ${marker}`);
+      }
+      try {
+        await fs.access(helperPath, fs.constants.X_OK);
+      } catch {
+        throw new Error(
+          'expected foreground helper executable bit to be repaired',
+        );
       }
     },
   );
